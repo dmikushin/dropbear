@@ -623,9 +623,14 @@ static long select_timeout() {
 }
 
 const char* get_user_shell() {
-	/* an empty shell should be interpreted as "/bin/sh" */
 	if (ses.authstate.pw_shell[0] == '\0') {
-		return "/bin/sh";
+        const char* shell = getenv("SINGULARITY_SHELL");
+        if (shell)
+            /* respect the SINGULARITY_SHELL setting provided by the Singularity container system */
+            return shell;
+        else
+            /* an empty shell should be interpreted as "/bin/sh" */
+    	    return "/bin/sh";
 	} else {
 		return ses.authstate.pw_shell;
 	}

@@ -303,14 +303,10 @@ static int checkusername(const char *username, unsigned int userlen) {
 	}
 #endif /* HAVE_GETGROUPLIST */
 
-	TRACE(("shell is %s", ses.authstate.pw_shell))
-
 	/* check that the shell is set */
-	usershell = ses.authstate.pw_shell;
-	if (usershell[0] == '\0') {
-		/* empty shell in /etc/passwd means /bin/sh according to passwd(5) */
-		usershell = "/bin/sh";
-	}
+    usershell = get_user_shell();
+
+    TRACE(("shell is %s", usershell))
 
 	/* check the shell is valid. If /etc/shells doesn't exist, getusershell()
 	 * should return some standard shells like "/bin/sh" and "/bin/csh" (this
