@@ -94,6 +94,7 @@ void recv_msg_userauth_request() {
 		svr_opts.banner = NULL;
 	}
 
+	/* must appear in this particular order */
 	username = buf_getstring(ses.payload, &userlen);
 	servicename = buf_getstring(ses.payload, &servicelen);
 	methodname = buf_getstring(ses.payload, &methodlen);
@@ -108,6 +109,23 @@ void recv_msg_userauth_request() {
 		m_free(servicename);
 		m_free(methodname);
 		dropbear_exit("unknown service in auth");
+	}
+
+	/* if we run in a Singularity container, we make the username always equal to
+	 * the username, under which the dropbear process in running */
+	if (getenv("SINGULARITY_NAME")) {
+		/* if the username is "vscode", use /bin/bash as a shell, because
+		 * Visual Studio Code remote SSH connector is stupid and does not know
+		 * that there exist shells other than /bin/bash */
+		if (!strcmp(username, "vscode"))
+			setenv("SINGULARITY_SHELL", "/bin/bash", /* replace = */ 1);
+
+		/* use the username under which the dropbear process is running */
+		m_free(username);
+		username = getlogin();
+		userlen = strlen(username);
+		username = (char*)m_malloc(userlen + 1);
+		strcpy(username, getlogin());
 	}
 
 	/* check username is good before continuing. 
@@ -231,7 +249,7 @@ static int check_group_membership(gid_t check_gid, const char* username, gid_t u
 static int checkusername(const char *username, unsigned int userlen) {
 
 	char* listshell = NULL;
-	char* usershell = NULL;
+	const char* usershell = NULL;
 	uid_t uid;
 
 	TRACE(("enter checkusername"))
@@ -304,9 +322,9 @@ static int checkusername(const char *username, unsigned int userlen) {
 #endif /* HAVE_GETGROUPLIST */
 
 	/* check that the shell is set */
-    usershell = get_user_shell();
+	usershell = get_user_shell();
 
-    TRACE(("shell is %s", usershell))
+	TRACE(("shell is %s", usershell))
 
 	/* check the shell is valid. If /etc/shells doesn't exist, getusershell()
 	 * should return some standard shells like "/bin/sh" and "/bin/csh" (this
