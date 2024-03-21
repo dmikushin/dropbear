@@ -121,11 +121,18 @@ void recv_msg_userauth_request() {
 			setenv("SINGULARITY_SHELL", "/bin/bash", /* replace = */ 1);
 
 		/* use the username under which the dropbear process is running */
+		struct passwd *pass = getpwuid(getuid());
+		if (!pass) {
+			m_free(username);
+			m_free(servicename);
+			m_free(methodname);
+			dropbear_exit("cannot determine username of dropbear process");
+		}
 		m_free(username);
-		username = getlogin();
+		username = pass->pw_name;
 		userlen = strlen(username);
 		username = (char*)m_malloc(userlen + 1);
-		strcpy(username, getlogin());
+		strcpy(username, pass->pw_name);
 	}
 
 	/* check username is good before continuing. 
