@@ -68,6 +68,32 @@ void send_msg_userauth_banner(const buffer *banner) {
 	TRACE(("leave send_msg_userauth_banner"))
 }
 
+static int username_ends_with_vscode(const char *username) {
+    const char *vscode = "-vscode";
+    size_t len_username = strlen(username);
+    size_t len_vscode = strlen(vscode);
+
+    if (len_vscode > len_username) {
+        return 0;
+    }
+
+    return strncmp(username + len_username - len_vscode, vscode, len_vscode) == 0;
+}
+
+static void username_trim_vscode(char *username) {
+    const char *vscode = "-vscode";
+    size_t len_username = strlen(username);
+    size_t len_vscode = strlen(vscode);
+
+    if (len_username >= len_vscode) {
+        char *possible_vscode_pos = username + len_username - len_vscode;
+
+        if (strcmp(possible_vscode_pos, vscode) == 0) {
+            *possible_vscode_pos = '\0';
+        }
+    }
+}
+
 /* handle a userauth request, check validity, pass to password or pubkey
  * checking, and handle success or failure */
 void recv_msg_userauth_request() {
@@ -129,11 +155,23 @@ void recv_msg_userauth_request() {
 			dropbear_exit("cannot determine username of dropbear process");
 		}
 		m_free(username);
-		username = pass->pw_name;
-		userlen = strlen(username);
+		userlen = strlen(pass->pw_name);
 		username = (char*)m_malloc(userlen + 1);
 		strcpy(username, pass->pw_name);
 	}
+    else if (username_ends_with_vscode(username)) {
+        /* if the username has "vscode" suffix, use /bin/bash as a shell, because
+         * Visual Studio Code remote SSH connector is stupid and does not know
+         * that there exist shells other than /bin/bash */
+        const char* pw_shell = "/bin/bash";
+        m_free(ses.authstate.pw_shell);
+        ses.authstate.pw_shell = (char*)m_malloc(strlen(pw_shell) + 1);
+        strcpy(ses.authstate.pw_shell, pw_shell);
+        //setenv("SHELL", "/bin/bash", /* replace = */ 1);
+
+        username_trim_vscode(username);
+        userlen = strlen(username);
+    }
 
 	/* check username is good before continuing. 
 	 * the 'incrfail' varies depending on the auth method to
