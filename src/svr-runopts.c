@@ -84,6 +84,9 @@ static void printhelp(const char * progname) {
 					"-B		Allow blank password logins\n"
 					"-t		Enable two-factor authentication (both password and public key required)\n"
 #endif
+#if DROPBEAR_SVR_NOAUTH
+                    "-0     Enable no authorization at all (e.g. for SSH networking in a Docker container)\n"
+#endif
 					"-T		Maximum authentication tries (default %d)\n"
 #if DROPBEAR_SVR_LOCALTCPFWD
 					"-j		Disable local port forwarding\n"
@@ -166,6 +169,9 @@ void svr_getopts(int argc, char ** argv) {
 	svr_opts.noauthpass = 0;
 	svr_opts.norootpass = 0;
 	svr_opts.allowblankpass = 0;
+#if DROPBEAR_SVR_NOAUTH
+    svr_opts.allow_noauth = 0;
+#endif
 	svr_opts.multiauthmethod = 0;
 	svr_opts.maxauthtries = MAX_AUTH_TRIES;
 	svr_opts.inetdmode = 0;
@@ -314,6 +320,11 @@ void svr_getopts(int argc, char ** argv) {
 				case 't':
 					svr_opts.multiauthmethod = 1;
 					break;
+#endif
+#if DROPBEAR_SVR_NOAUTH
+                case '0':
+                    svr_opts.allow_noauth = 1;
+                    break;
 #endif
 				case 'h':
 					printhelp(argv[0]);

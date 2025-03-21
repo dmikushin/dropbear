@@ -138,7 +138,9 @@ typedef struct svr_runopts {
 #endif
 
 	int pass_on_env;
-
+#if DROPBEAR_SVR_NOAUTH
+    int allow_noauth;
+#endif
 } svr_runopts;
 
 extern svr_runopts svr_opts;

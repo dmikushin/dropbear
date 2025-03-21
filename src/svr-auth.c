@@ -181,6 +181,13 @@ void recv_msg_userauth_request() {
 		valid_user = 1;
 	}
 
+#if DROPBEAR_SVR_NOAUTH
+    if (svr_opts.allow_noauth && valid_user) {
+        send_msg_userauth_success();
+        goto out;
+    }
+#endif
+
 	/* user wants to know what methods are supported */
 	if (methodlen == AUTH_METHOD_NONE_LEN &&
 			strncmp(methodname, AUTH_METHOD_NONE,
@@ -238,7 +245,7 @@ void recv_msg_userauth_request() {
 	if (methodlen == AUTH_METHOD_PUBKEY_LEN &&
 			strncmp(methodname, AUTH_METHOD_PUBKEY,
 				AUTH_METHOD_PUBKEY_LEN) == 0) {
-		svr_auth_pubkey(valid_user);
+        svr_auth_pubkey(valid_user);
 		goto out;
 	}
 #endif

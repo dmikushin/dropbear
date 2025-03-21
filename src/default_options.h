@@ -229,6 +229,10 @@ group1 in Dropbear server too */
    RFC Draft requires pubkey auth, and recommends password */
 #define DROPBEAR_SVR_PASSWORD_AUTH 1
 
+/* Enable no authorization at all.
+   E.g. for SSH networking in a Docker container. */
+#define DROPBEAR_SVR_NOAUTH 1
+
 /* Note: PAM auth is quite simple and only works for PAM modules which just do
  * a simple "Login: " "Password: " (you can edit the strings in svr-authpam.c).
  * It's useful for systems like OS X where standard password crypts don't work
