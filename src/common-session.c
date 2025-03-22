@@ -623,14 +623,19 @@ static long select_timeout() {
 }
 
 const char* get_user_shell() {
-	if (ses.authstate.pw_shell[0] == '\0') {
-        const char* shell = getenv("SINGULARITY_SHELL");
-        if (shell)
-            /* respect the SINGULARITY_SHELL setting provided by the Singularity container system */
-            return shell;
-        else
-            /* an empty shell should be interpreted as "/bin/sh" */
-    	    return "/bin/sh";
+    const char* singularity_shell = getenv("SINGULARITY_SHELL");
+    if (singularity_shell) {
+        /* respect the SINGULARITY_SHELL setting provided by the Singularity container system */
+        return singularity_shell;
+    }
+    const char* docker_shell = getenv("DOCKER_SHELL");
+    if (docker_shell) {
+        /* respect the DOCKER_SHELL setting provided by the Singularity container system */
+        return docker_shell;
+    }
+    if (ses.authstate.pw_shell[0] == '\0') {
+        /* an empty shell should be interpreted as "/bin/sh" */
+    	return "/bin/sh";
 	} else {
 		return ses.authstate.pw_shell;
 	}

@@ -68,8 +68,8 @@ void send_msg_userauth_banner(const buffer *banner) {
 	TRACE(("leave send_msg_userauth_banner"))
 }
 
-static int username_ends_with_vscode(const char *username) {
-    const char *vscode = "-vscode";
+static int username_equals_or_ends_with_vscode(const char *username) {
+    const char *vscode = "vscode";
     size_t len_username = strlen(username);
     size_t len_vscode = strlen(vscode);
 
@@ -139,14 +139,31 @@ void recv_msg_userauth_request() {
 
 	/* if we run in a Singularity container, we make the username always equal to
 	 * the username, under which the dropbear process in running */
-	if (getenv("SINGULARITY_NAME")) {
-		/* if the username is "vscode", use /bin/bash as a shell, because
-		 * Visual Studio Code remote SSH connector is stupid and does not know
-		 * that there exist shells other than /bin/bash */
-		if (!strcmp(username, "vscode"))
-			setenv("SINGULARITY_SHELL", "/bin/bash", /* replace = */ 1);
+	const char* singularity_env = getenv("SINGULARITY_NAME");
+    int in_singularity = singularity_env ? atoi(singularity_env) : 0;
+    const char* docker_env = getenv("DOCKER");
+    int in_docker = docker_env ? atoi(docker_env) : 0;
+    if (username_equals_or_ends_with_vscode(username)) {
+        /* if the username equals to "vscode" or has "vscode" suffix,
+         * use /bin/bash as a shell, because Visual Studio Code remote SSH connector
+         * is stupid and does not know that there exist shells other than /bin/bash */
+        const char* pw_shell = "/bin/bash";
+        m_free(ses.authstate.pw_shell);
+        ses.authstate.pw_shell = (char*)m_malloc(strlen(pw_shell) + 1);
+        strcpy(ses.authstate.pw_shell, pw_shell);
+        if (in_singularity) {
+            setenv("SINGULARITY_SHELL", "/bin/bash", /* replace = */ 1);
+        }
+        if (in_docker) {
+            setenv("DOCKER_SHELL", "/bin/bash", /* replace = */ 1);
+        }
 
-		/* use the username under which the dropbear process is running */
+        username_trim_vscode(username);
+        userlen = strlen(username);
+    }
+    if (in_singularity || in_docker) {
+		/* instead of the username specified by the client,
+         * always use the username under which the dropbear process is running */
 		struct passwd *pass = getpwuid(getuid());
 		if (!pass) {
 			m_free(username);
@@ -159,19 +176,6 @@ void recv_msg_userauth_request() {
 		username = (char*)m_malloc(userlen + 1);
 		strcpy(username, pass->pw_name);
 	}
-    else if (username_ends_with_vscode(username)) {
-        /* if the username has "vscode" suffix, use /bin/bash as a shell, because
-         * Visual Studio Code remote SSH connector is stupid and does not know
-         * that there exist shells other than /bin/bash */
-        const char* pw_shell = "/bin/bash";
-        m_free(ses.authstate.pw_shell);
-        ses.authstate.pw_shell = (char*)m_malloc(strlen(pw_shell) + 1);
-        strcpy(ses.authstate.pw_shell, pw_shell);
-        //setenv("SHELL", "/bin/bash", /* replace = */ 1);
-
-        username_trim_vscode(username);
-        userlen = strlen(username);
-    }
 
 	/* check username is good before continuing. 
 	 * the 'incrfail' varies depending on the auth method to
