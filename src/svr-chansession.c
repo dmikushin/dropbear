@@ -1014,11 +1014,13 @@ static void execchild(const void *user_data) {
 	addnewvar("LOGNAME", ses.authstate.pw_name);
 	addnewvar("HOME", ses.authstate.pw_dir);
 	addnewvar("SHELL", get_user_shell());
-	if (getuid() == 0) {
+#if 0
+    if (getuid() == 0) {
 		addnewvar("PATH", DEFAULT_ROOT_PATH);
 	} else {
 		addnewvar("PATH", DEFAULT_PATH);
 	}
+#endif
 	if (cp != NULL) {
 		addnewvar("LANG", cp);
 		m_free(cp);
