@@ -1050,8 +1050,24 @@ static void execchild(const void *user_data) {
 	}
 #endif
 
+    /* Let container to override the default PWD */
+    char* start_dir = ses.authstate.pw_dir;
+    const char* singularity_env = getenv("SINGULARITY_NAME");
+    int in_singularity = singularity_env ? atoi(singularity_env) : 0;
+    const char* docker_env = getenv("DOCKER");
+    int in_docker = docker_env ? atoi(docker_env) : 0;
+    if (in_singularity || in_docker) {
+        char* pwd = getenv("PWD");
+        if (pwd != NULL && access(pwd, F_OK) == 0) {
+            start_dir = pwd;
+        }
+        else {
+            start_dir = ses.authstate.pw_dir;
+        }
+    }
+
 	/* change directory */
-	if (chdir(ses.authstate.pw_dir) < 0) {
+	if (chdir(start_dir) < 0) {
 		int e = errno;
 		if (chdir("/") < 0) {
 			dropbear_exit("chdir(\"/\") failed");
